@@ -63,28 +63,28 @@ class Webrtc extends EventTarget {
         if (this.room) {
             this._sendMessage({ type: 'gotstream' }, null, this.room);
         } else {
-            this.warn('Should join room before sending stream');
+            this.warn('Yayına başlamadan önce bir odaya katılmanız gerekmekte');
 
             this._emit('notification', {
-                notification: `Should join room before sending a stream.`,
+                notification: `Yayına başlamadan önce bir odaya katılmanız gerekmekte`,
             });
         }
     }
 
     joinRoom(room) {
         if (this.room) {
-            this.warn('Leave current room before joining a new one');
+            this.warn('Yeni bir odaya katılmadan önce, mevcut odadan ayrılmanız gerekmekte!');
 
             this._emit('notification', {
-                notification: `Leave current room before joining a new one`,
+                notification: `Yeni bir odaya katılmadan önce, mevcut odadan ayrılmanız gerekmekte!`,
             });
             return;
         }
         if (!room) {
-            this.warn('Room ID not provided');
+            this.warn('Oda ID desteklenmemekte');
 
             this._emit('notification', {
-                notification: `Room ID not provided`,
+                notification: `Oda ID desteklenmemekte`,
             });
             return;
         }
@@ -96,7 +96,7 @@ class Webrtc extends EventTarget {
             this.warn('You are currently not in a room');
 
             this._emit('notification', {
-                notification: `You are currently not in a room`,
+                notification: `Herhangi bir odada değilsiniz..`,
             });
             return;
         }

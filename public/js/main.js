@@ -55,7 +55,7 @@ const joinBtn = document.querySelector('#joinBtn');
 joinBtn.addEventListener('click', () => {
     const room = roomInput.value;
     if (!room) {
-        notify('Room ID not provided');
+        notify('Oda ID desteklenmemekte');
         return;
     }
 
@@ -65,14 +65,14 @@ joinBtn.addEventListener('click', () => {
 const setTitle = (status, e) => {
     const room = e.detail.roomId;
 
-    console.log(`Room ${room} was ${status}`);
+    console.log(`Oda numarası:${room}, ${status}`);
 
-    notify(`Room ${room} was ${status}`);
+    notify(`Oda numarası: ${room}, ${status}`);
     document.querySelector('h1').textContent = `Room: ${room}`;
     webrtc.gotStream();
 };
-webrtc.addEventListener('createdRoom', setTitle.bind(this, 'created'));
-webrtc.addEventListener('joinedRoom', setTitle.bind(this, 'joined'));
+webrtc.addEventListener('createdRoom', setTitle.bind(this, 'oluşturuldu.'));
+webrtc.addEventListener('joinedRoom', setTitle.bind(this, 'katınıldı.'));
 
 /**
  * Leave the room
@@ -81,7 +81,7 @@ const leaveBtn = document.querySelector('#leaveBtn');
 leaveBtn.addEventListener('click', () => {
     webrtc.leaveRoom();
 });
-webrtc.addEventListener('leftRoom', (e) => {
+webrtc.addEventListener('Ayrıl', (e) => {
     const room = e.detail.roomId;
     document.querySelector('h1').textContent = '';
     notify(`Left the room ${room}`);
@@ -95,12 +95,12 @@ webrtc
     .then((stream) => (localVideo.srcObject = stream));
 
 webrtc.addEventListener('kicked', () => {
-    document.querySelector('h1').textContent = 'You were kicked out';
+    document.querySelector('h1').textContent = 'Odadan atıldınız';
     videoGrid.innerHTML = '';
 });
 
 webrtc.addEventListener('userLeave', (e) => {
-    console.log(`user ${e.detail.socketId} left room`);
+    console.log(`Kullanıcı: ${e.detail.socketId} ayrıldı. `);
 });
 
 /**
