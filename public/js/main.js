@@ -55,7 +55,7 @@ const joinBtn = document.querySelector('#joinBtn');
 joinBtn.addEventListener('click', () => {
     const room = roomInput.value;
     if (!room) {
-        notify('Oda ID desteklenmemekte');
+        notify('Oda ID desteklenmemekt');
         return;
     }
 
@@ -68,11 +68,11 @@ const setTitle = (status, e) => {
     console.log(`Oda numarası:${room}, ${status}`);
 
     notify(`Oda numarası: ${room}, ${status}`);
-    document.querySelector('h1').textContent = `Room: ${room}`;
+    document.querySelector('h1').textContent = `ODA: ${room}`;
     webrtc.gotStream();
 };
 webrtc.addEventListener('createdRoom', setTitle.bind(this, 'oluşturuldu.'));
-webrtc.addEventListener('joinedRoom', setTitle.bind(this, 'katınıldı.'));
+webrtc.addEventListener('joinedRoom', setTitle.bind(this, 'Katılındı.'));
 
 /**
  * Leave the room
@@ -126,11 +126,11 @@ webrtc.addEventListener('newUser', (e) => {
     videoContainer.append(p);
     videoContainer.append(video);
 
-    // If user is admin add kick buttons
+
     if (webrtc.isAdmin) {
         const kickBtn = document.createElement('button');
         kickBtn.setAttribute('class', 'kick_btn');
-        kickBtn.textContent = 'Kick';
+        kickBtn.textContent = 'X';
 
         kickBtn.addEventListener('click', () => {
             webrtc.kickUser(socketId);
@@ -141,9 +141,6 @@ webrtc.addEventListener('newUser', (e) => {
     videoGrid.append(videoContainer);
 });
 
-/**
- * Handle user got removed
- */
 webrtc.addEventListener('removeUser', (e) => {
     const socketId = e.detail.socketId;
     if (!socketId) {
@@ -154,9 +151,7 @@ webrtc.addEventListener('removeUser', (e) => {
     document.getElementById(socketId).remove();
 });
 
-/**
- * Handle errors
- */
+
 webrtc.addEventListener('error', (e) => {
     const error = e.detail.error;
     console.error(error);
@@ -164,9 +159,7 @@ webrtc.addEventListener('error', (e) => {
     notify(error);
 });
 
-/**
- * Handle notifications
- */
+
 webrtc.addEventListener('notification', (e) => {
     const notif = e.detail.notification;
     console.log(notif);
