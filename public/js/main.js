@@ -53,48 +53,48 @@ const webrtc = new Webrtc(socket, pcConfig, {
 const roomInput = document.querySelector('#roomId');
 const joinBtn = document.querySelector('#joinBtn');
 joinBtn.addEventListener('click', () => {
-    const room = roomInput.value;
-    if (!room) {
-        notify('Oda ID desteklenmemekt');
+    const oda = roomInput.value;
+    if (!oda) {
+        notify('Oda ID desteklenmemekte');
         return;
     }
 
-    webrtc.joinRoom(room);
+    webrtc.odayaKatil(oda);
 });
 
 const setTitle = (status, e) => {
-    const room = e.detail.roomId;
+    const oda = e.detail.odaId;
 
-    console.log(`Oda numarası:${room}, ${status}`);
+    console.log(`Oda numarası:${oda}, ${status}`);
 
-    notify(`Oda numarası: ${room}, ${status}`);
-    document.querySelector('h1').textContent = `ODA: ${room}`;
-    webrtc.gotStream();
+    notify(`Oda numarası: ${oda}, ${status}`);
+    document.querySelector('h1').textContent = `ODA: ${oda}`;
+    webrtc.yayinda();
 };
-webrtc.addEventListener('createdRoom', setTitle.bind(this, 'oluşturuldu.'));
-webrtc.addEventListener('joinedRoom', setTitle.bind(this, 'Katılındı.'));
+webrtc.addEventListener('oda_olusturuldu', setTitle.bind(this, 'olusturuldu'));
+webrtc.addEventListener('odayaKatildi', setTitle.bind(this, 'katildi.'));
 
 /**
  * Leave the room
  */
 const leaveBtn = document.querySelector('#leaveBtn');
 leaveBtn.addEventListener('click', () => {
-    webrtc.leaveRoom();
+    webrtc.odadanAyril();
 });
 webrtc.addEventListener('Ayrıl', (e) => {
-    const room = e.detail.roomId;
+    const oda = e.detail.odaId;
     document.querySelector('h1').textContent = '';
-    notify(`Left the room ${room}`);
+    notify(`Odadan ayril ${oda}`);
 });
 
 /**
  * Get local media
  */
 webrtc
-    .getLocalStream(true, { width: 640, height: 480 })
+    .getlocalYayin(true, { width: 640, height: 480 })
     .then((stream) => (localVideo.srcObject = stream));
 
-webrtc.addEventListener('kicked', () => {
+webrtc.addEventListener('atıldın', () => {
     document.querySelector('h1').textContent = 'Odadan atıldınız';
     videoGrid.innerHTML = '';
 });
@@ -127,13 +127,13 @@ webrtc.addEventListener('newUser', (e) => {
     videoContainer.append(video);
 
 
-    if (webrtc.isAdmin) {
+    if (webrtc.adminKontrol) {
         const kickBtn = document.createElement('button');
         kickBtn.setAttribute('class', 'kick_btn');
         kickBtn.textContent = 'X';
 
         kickBtn.addEventListener('click', () => {
-            webrtc.kickUser(socketId);
+            webrtc.kullanici_at(socketId);
         });
 
         videoContainer.append(kickBtn);
@@ -141,7 +141,7 @@ webrtc.addEventListener('newUser', (e) => {
     videoGrid.append(videoContainer);
 });
 
-webrtc.addEventListener('removeUser', (e) => {
+webrtc.addEventListener('kullaniciAt', (e) => {
     const socketId = e.detail.socketId;
     if (!socketId) {
         // remove all remote stream elements

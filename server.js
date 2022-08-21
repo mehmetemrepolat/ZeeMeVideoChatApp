@@ -19,7 +19,7 @@ app.use(express.static(path.join(__dirname, 'node_modules')));
 
 const server = require('http').createServer(app);
 server.listen(port, () => {
-    console.log(`listening on port ${port}`);
+    console.log(`Bu portta yayında: ${port}`);
 });
 
 /**
@@ -65,8 +65,8 @@ io.sockets.on('connection', function (socket) {
     /**
      * When room gets created or someone joins it
      */
-    socket.on('create or join', (room) => {
-        log('Create or Join room: ' + room);
+    socket.on('oluştur veya katıl', (room) => {
+        log('Oda oluştur veya mevcut odaya katıl: ' + room);
 
         // Get number of clients in the room
         const clientsInRoom = io.sockets.adapter.rooms.get(room);
@@ -76,24 +76,24 @@ io.sockets.on('connection', function (socket) {
             // Create room
             socket.join(room);
             roomAdmin = socket.id;
-            socket.emit('created', room, socket.id);
+            socket.emit('Oluşturuldu', room, socket.id);
         } else {
-            log('Client ' + socket.id + ' joined room ' + room);
+            log('Kullanıcı:' + socket.id + ' odaya katıldı ' + room);
 
             // Join room
             io.sockets.in(room).emit('join', room); // Notify users in room
             socket.join(room);
-            io.to(socket.id).emit('joined', room, socket.id); // Notify client that they joined a room
-            io.sockets.in(room).emit('ready', socket.id); // Room is ready for creating connections
+            io.to(socket.id).emit('katildi', room, socket.id); // Notify client that they joined a room
+            io.sockets.in(room).emit('hazir', socket.id); // Room is ready for creating connections
         }
     });
 
     /**
      * Kick participant from a call
      */
-    socket.on('kickout', (socketId, room) => {
+    socket.on('ban', (socketId, room) => {
         if (socket.id === roomAdmin) {
-            socket.broadcast.emit('kickout', socketId);
+            socket.broadcast.emit('ban', socketId);
             io.sockets.sockets.get(socketId).leave(room);
         } else {
             console.log('not an admin');
@@ -101,15 +101,13 @@ io.sockets.on('connection', function (socket) {
     });
 
     // participant leaves room
-    socket.on('leave room', (room) => {
+    socket.on('odadan ayrıl', (room) => {
         socket.leave(room);
-        socket.emit('left room', room);
+        socket.emit('odadan ayril', room);
         socket.broadcast.to(room).emit('message', { type: 'leave' }, socket.id);
     });
 
-    /**
-     * When participant leaves notify other participants
-     */
+
     socket.on('disconnecting', () => {
         socket.rooms.forEach((room) => {
             if (room === socket.id) return;

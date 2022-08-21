@@ -7,19 +7,19 @@ class Webrtc extends EventTarget {
         logging = { log: true, warn: true, error: true }
     ) {
         super();
-        this.room;
+        this.oda;
         this.socket = socket;
         this.pcConfig = pcConfig;
 
-        this._myId = null;
-        this.pcs = {}; // Peer connections
+        this._IDno = null;
+        this.pcs = {}; // Katılımcı Listesi
         this.streams = {};
-        this.currentRoom;
+        this.mevcutOda;
         this.inCall = false;
-        this.isReady = false; // At least 2 users are in room
-        this.isInitiator = false; // Initiates connections if true
-        this._isAdmin = false; // Should be checked on the server
-        this._localStream = null;
+        this.hazirMi = false; // Hazır mı?
+        this.isInitiator = false; //
+        this._adminKontrol = false; // Admin Kontrolü için
+        this._localYayin = null;
 
         // Manage logging
         this.log = logging.log ? console.log : () => {};
@@ -27,7 +27,7 @@ class Webrtc extends EventTarget {
         this.error = logging.error ? console.error : () => {};
 
         // Initialize socket.io listeners
-        this._onSocketListeners();
+        this._soketBaglantilari();
     }
 
     // Custom event emitter
@@ -39,29 +39,29 @@ class Webrtc extends EventTarget {
         );
     }
 
-    get localStream() {
-        return this._localStream;
+    get localYayin() {
+        return this._localYayin;
     }
 
-    get myId() {
-        return this._myId;
+    get IDno() {
+        return this._IDno;
     }
 
-    get isAdmin() {
-        return this._isAdmin;
+    get adminKontrol() {
+        return this._adminKontrol;
     }
 
-    get roomId() {
-        return this.room;
+    get odaId() {
+        return this.oda;
     }
 
-    get participants() {
+    get katilimcilar() {
         return Object.keys(this.pcs);
     }
 
-    gotStream() {
-        if (this.room) {
-            this._sendMessage({ type: 'gotstream' }, null, this.room);
+    yayinda() {
+        if (this.oda) {//odanın içerisinde olup olunmadığı
+            this._sendMessage({ type: 'yayinda' }, null, this.oda);
         } else {
             this.warn('Yayına başlamadan önce bir odaya katılmanız gerekmekte');
 
@@ -71,8 +71,8 @@ class Webrtc extends EventTarget {
         }
     }
 
-    joinRoom(room) {
-        if (this.room) {
+    odayaKatil(oda) {
+        if (this.oda) {
             this.warn('Yeni bir odaya katılmadan önce, mevcut odadan ayrılmanız gerekmekte!');
 
             this._emit('notification', {
@@ -80,7 +80,7 @@ class Webrtc extends EventTarget {
             });
             return;
         }
-        if (!room) {
+        if (!oda) {
             this.warn('Oda ID desteklenmemekte');
 
             this._emit('notification', {
@@ -88,12 +88,12 @@ class Webrtc extends EventTarget {
             });
             return;
         }
-        this.socket.emit('create or join', room);
+        this.socket.emit('oluştur veya katıl', oda);
     }
 
-    leaveRoom() {
-        if (!this.room) {
-            this.warn('You are currently not in a room');
+    odadanAyril() {
+        if (!this.oda) {
+            this.warn('Herhangi bir odada değilsiniz..');
 
             this._emit('notification', {
                 notification: `Herhangi bir odada değilsiniz..`,
@@ -101,26 +101,26 @@ class Webrtc extends EventTarget {
             return;
         }
         this.isInitiator = false;
-        this.socket.emit('leave room', this.room);
+        this.socket.emit('odadan ayrıl', this.oda);
     }
 
     // Get local stream
-    getLocalStream(audioConstraints, videoConstraints) {
+    getlocalYayin(audioConstraints, videoConstraints) {
         return navigator.mediaDevices
             .getUserMedia({
                 audio: audioConstraints,
                 video: videoConstraints,
             })
             .then((stream) => {
-                this.log('Got local stream.');
-                this._localStream = stream;
+                this.log('Local yayında.');
+                this._localYayin = stream;
                 return stream;
             })
             .catch(() => {
-                this.error("Can't get usermedia");
+                this.error("Kullanıcı verileri alınamadı!");
 
                 this._emit('error', {
-                    error: new Error(`Can't get usermedia`),
+                    error: new Error(`Kullanıcı verileri alınamadı!`),
                 });
             });
     }
@@ -129,90 +129,90 @@ class Webrtc extends EventTarget {
      * Try connecting to peers
      * if got local stream and is ready for connection
      */
-    _connect(socketId) {
-        if (typeof this._localStream !== 'undefined' && this.isReady) {
-            this.log('Create peer connection to ', socketId);
+    _baglan(soketID) {
+        if (typeof this._localYayin !== 'undefined' && this.hazirMi) {
+            this.log('Bağlantı oluşturuluyor: ', soketID);
 
-            this._createPeerConnection(socketId);
-            this.pcs[socketId].addStream(this._localStream);
+            this._createPeerConnection(soketID);
+            this.pcs[soketID].addStream(this._localYayin);
 
             if (this.isInitiator) {
-                this.log('Creating offer for ', socketId);
+                this.log(soketID, ' bildirim oluşturuluyor.');
 
-                this._makeOffer(socketId);
+                this._makeOffer(soketID);
             }
         } else {
-            this.warn('NOT connecting');
+            this.warn('Bağlanılamıyor..');
         }
     }
 
     /**
      * Initialize listeners for socket.io events
      */
-    _onSocketListeners() {
-        this.log('socket listeners initialized');
+    _soketBaglantilari() {
+        this.log('Soket Bağlantıları Gerçekleşti');
 
-        // Room got created
-        this.socket.on('created', (room, socketId) => {
-            this.room = room;
-            this._myId = socketId;
+        // Oda oluşturma
+        this.socket.on('olusturuldu', (oda, soketID) => {
+            this.oda = oda;
+            this._IDno = soketID;
             this.isInitiator = true;
-            this._isAdmin = true;
+            this._adminKontrol = true;
 
-            this._emit('createdRoom', { roomId: room });
+            this._emit('oda_olusturuldu', { odaId: oda });
         });
 
-        // Joined the room
-        this.socket.on('joined', (room, socketId) => {
-            this.log('joined: ' + room);
+        // Odaya Katılma
+        this.socket.on('katildi', (oda, soketID) => {
+            this.log('katildi: ' + oda);
 
-            this.room = room;
-            this.isReady = true;
-            this._myId = socketId;
+            this.oda = oda;
+            this.hazirMi = true;
+            this._IDno = soketID;
 
-            this._emit('joinedRoom', { roomId: room });
+            this._emit('odayaKatildi', { odaId: oda });
         });
 
-        // Left the room
-        this.socket.on('left room', (room) => {
-            if (room === this.room) {
-                this.warn(`Left the room ${room}`);
+        // odadan ayrılma
+        this.socket.on('odadan ayrıl', (oda) => {
+            if (oda === this.oda) {
+                this.warn(`${oda} numaralı odadan ayrıl`);
 
-                this.room = null;
-                this._removeUser();
-                this._emit('leftRoom', {
-                    roomId: room,
+                this.oda = null;
+                this._kullaniciAt();
+                this._emit('ayril', {
+                    odaId: oda,
                 });
             }
         });
 
-        // Someone joins room
-        this.socket.on('join', (room) => {
-            this.log('Incoming request to join room: ' + room);
+        // Odaya katılma
+        this.socket.on('katil', (oda) => {
+            this.log('Odaya katılma isteği: ' + oda);
 
-            this.isReady = true;
+            this.hazirMi = true;
 
-            this.dispatchEvent(new Event('newJoin'));
+            this.dispatchEvent(new Event('yeniKatilim'));
         });
 
         // Room is ready for connection
-        this.socket.on('ready', (user) => {
-            this.log('User: ', user, ' joined room');
+        this.socket.on('hazir', (user) => {
+            this.log('Kullanıcı: ', user, ' odaya katıldı');
 
-            if (user !== this._myId && this.inCall) this.isInitiator = true;
+            if (user !== this._IDno && this.inCall) this.isInitiator = true;
         });
 
         // Someone got kicked from call
-        this.socket.on('kickout', (socketId) => {
-            this.log('kickout user: ', socketId);
+        this.socket.on('ban', (soketID) => {
+            this.log('Kullanıcı atıldı: ', soketID);
 
-            if (socketId === this._myId) {
+            if (soketID === this._IDno) {
                 // You got kicked out
-                this.dispatchEvent(new Event('kicked'));
-                this._removeUser();
+                this.dispatchEvent(new Event('atıldın'));
+                this._kullaniciAt();
             } else {
                 // Someone else got kicked out
-                this._removeUser(socketId);
+                this._kullaniciAt(soketID);
             }
         });
 
@@ -225,47 +225,47 @@ class Webrtc extends EventTarget {
          * Message from the server
          * Manage stream and sdp exchange between peers
          */
-        this.socket.on('message', (message, socketId) => {
-            this.log('From', socketId, ' received:', message.type);
+        this.socket.on('message', (message, soketID) => {
+            this.log('From', soketID, ' received:', message.type);
 
             // Participant leaves
             if (message.type === 'leave') {
-                this.log(socketId, 'Left the call.');
-                this._removeUser(socketId);
+                this.log(soketID, 'Left the call.');
+                this._kullaniciAt(soketID);
                 this.isInitiator = true;
 
-                this._emit('userLeave', { socketId: socketId });
+                this._emit('userLeave', { soketID: soketID });
                 return;
             }
 
             // Avoid dublicate connections
             if (
-                this.pcs[socketId] &&
-                this.pcs[socketId].connectionState === 'connected'
+                this.pcs[soketID] &&
+                this.pcs[soketID].connectionState === 'connected'
             ) {
                 this.log(
                     'Connection with ',
-                    socketId,
+                    soketID,
                     'is already established'
                 );
                 return;
             }
 
             switch (message.type) {
-                case 'gotstream': // user is ready to share their stream
-                    this._connect(socketId);
+                case 'yayinda': // user is ready to share their stream
+                    this._baglan(soketID);
                     break;
                 case 'offer': // got connection offer
-                    if (!this.pcs[socketId]) {
-                        this._connect(socketId);
+                    if (!this.pcs[soketID]) {
+                        this._baglan(soketID);
                     }
-                    this.pcs[socketId].setRemoteDescription(
+                    this.pcs[soketID].setRemoteDescription(
                         new RTCSessionDescription(message)
                     );
-                    this._answer(socketId);
+                    this._answer(soketID);
                     break;
                 case 'answer': // got answer for sent offer
-                    this.pcs[socketId].setRemoteDescription(
+                    this.pcs[soketID].setRemoteDescription(
                         new RTCSessionDescription(message)
                     );
                     break;
@@ -275,39 +275,39 @@ class Webrtc extends EventTarget {
                         sdpMLineIndex: message.label,
                         candidate: message.candidate,
                     });
-                    this.pcs[socketId].addIceCandidate(candidate);
+                    this.pcs[soketID].addIceCandidate(candidate);
                     break;
             }
         });
     }
 
-    _sendMessage(message, toId = null, roomId = null) {
-        this.socket.emit('message', message, toId, roomId);
+    _sendMessage(message, toId = null, odaId = null) {
+        this.socket.emit('message', message, toId, odaId);
     }
 
-    _createPeerConnection(socketId) {
+    _createPeerConnection(soketID) {
         try {
-            if (this.pcs[socketId]) {
+            if (this.pcs[soketID]) {
                 // Skip peer if connection is already established
-                this.warn('Connection with ', socketId, ' already established');
+                this.warn('Connection with ', soketID, ' already established');
                 return;
             }
 
-            this.pcs[socketId] = new RTCPeerConnection(this.pcConfig);
-            this.pcs[socketId].onicecandidate = this._handleIceCandidate.bind(
+            this.pcs[soketID] = new RTCPeerConnection(this.pcConfig);
+            this.pcs[soketID].onicecandidate = this._handleIceCandidate.bind(
                 this,
-                socketId
+                soketID
             );
-            this.pcs[socketId].ontrack = this._handleOnTrack.bind(
+            this.pcs[soketID].ontrack = this._handleOnTrack.bind(
                 this,
-                socketId
+                soketID
             );
-            // this.pcs[socketId].onremovetrack = this._handleOnRemoveTrack.bind(
+            // this.pcs[soketID].onremovetrack = this._handleOnRemoveTrack.bind(
             //     this,
-            //     socketId
+            //     soketID
             // );
 
-            this.log('Created RTCPeerConnnection for ', socketId);
+            this.log('Created RTCPeerConnnection for ', soketID);
         } catch (error) {
             this.error('RTCPeerConnection failed: ' + error.message);
 
@@ -320,7 +320,7 @@ class Webrtc extends EventTarget {
     /**
      * Send ICE candidate through signaling server (socket.io in this case)
      */
-    _handleIceCandidate(socketId, event) {
+    _handleIceCandidate(soketID, event) {
         this.log('icecandidate event');
 
         if (event.candidate) {
@@ -331,7 +331,7 @@ class Webrtc extends EventTarget {
                     id: event.candidate.sdpMid,
                     candidate: event.candidate.candidate,
                 },
-                socketId
+                soketID
             );
         }
     }
@@ -348,11 +348,11 @@ class Webrtc extends EventTarget {
      * Make an offer
      * Creates session descripton
      */
-    _makeOffer(socketId) {
-        this.log('Sending offer to ', socketId);
+    _makeOffer(soketID) {
+        this.log('Sending offer to ', soketID);
 
-        this.pcs[socketId].createOffer(
-            this._setSendLocalDescription.bind(this, socketId),
+        this.pcs[soketID].createOffer(
+            this._setSendLocalDescription.bind(this, soketID),
             this._handleCreateOfferError
         );
     }
@@ -360,13 +360,13 @@ class Webrtc extends EventTarget {
     /**
      * Create an answer for incoming offer
      */
-    _answer(socketId) {
-        this.log('Sending answer to ', socketId);
+    _answer(soketID) {
+        this.log('Sending answer to ', soketID);
 
-        this.pcs[socketId]
+        this.pcs[soketID]
             .createAnswer()
             .then(
-                this._setSendLocalDescription.bind(this, socketId),
+                this._setSendLocalDescription.bind(this, soketID),
                 this._handleSDPError
             );
     }
@@ -374,9 +374,9 @@ class Webrtc extends EventTarget {
     /**
      * Set local description and send it to server
      */
-    _setSendLocalDescription(socketId, sessionDescription) {
-        this.pcs[socketId].setLocalDescription(sessionDescription);
-        this._sendMessage(sessionDescription, socketId);
+    _setSendLocalDescription(soketID, sessionDescription) {
+        this.pcs[soketID].setLocalDescription(sessionDescription);
+        this._sendMessage(sessionDescription, soketID);
     }
 
     _handleSDPError(error) {
@@ -387,53 +387,53 @@ class Webrtc extends EventTarget {
         });
     }
 
-    _handleOnTrack(socketId, event) {
-        this.log('Remote stream added for ', socketId);
+    _handleOnTrack(soketID, event) {
+        this.log('Remote stream added for ', soketID);
 
-        if (this.streams[socketId]?.id !== event.streams[0].id) {
-            this.streams[socketId] = event.streams[0];
+        if (this.streams[soketID]?.id !== event.streams[0].id) {
+            this.streams[soketID] = event.streams[0];
 
             this._emit('newUser', {
-                socketId,
+                soketID,
                 stream: event.streams[0],
             });
         }
     }
 
-    _handleUserLeave(socketId) {
-        this.log(socketId, 'Left the call.');
-        this._removeUser(socketId);
+    _handleUserLeave(soketID) {
+        this.log(soketID, 'Aramadan çıkılıyor..');
+        this._kullaniciAt(soketID);
         this.isInitiator = false;
     }
 
-    _removeUser(socketId = null) {
-        if (!socketId) {
+    _kullaniciAt(soketID = null) {
+        if (!soketID) {
             // close all connections
             for (const [key, value] of Object.entries(this.pcs)) {
-                this.log('closing', value);
+                this.log('Çıkış yapılıyor..', value);
                 value.close();
                 delete this.pcs[key];
             }
             this.streams = {};
         } else {
-            if (!this.pcs[socketId]) return;
-            this.pcs[socketId].close();
-            delete this.pcs[socketId];
+            if (!this.pcs[soketID]) return;
+            this.pcs[soketID].close();
+            delete this.pcs[soketID];
 
-            delete this.streams[socketId];
+            delete this.streams[soketID];
         }
 
-        this._emit('removeUser', { socketId });
+        this._emit('kullaniciAt', { soketID });
     }
 
-    kickUser(socketId) {
-        if (!this.isAdmin) {
+    kullanici_at(soketID) {
+        if (!this.adminKontrol) { //Admin mi diye sorgulama
             this._emit('notification', {
-                notification: 'You are not an admin',
+                notification: 'Admin değilsiniz',
             });
             return;
         }
-        this._removeUser(socketId);
-        this.socket.emit('kickout', socketId, this.room);
+        this._kullaniciAt(soketID);
+        this.socket.emit('ban', soketID, this.oda);
     }
 }

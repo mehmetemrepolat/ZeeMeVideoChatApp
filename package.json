@@ -1,7 +1,7 @@
 {
-  "name": "webrtc-video-conference",
+  "name": "ZeeMe Yerli ve Milli Sanal Sınıf",
   "version": "1.0.0",
-  "description": "webrtc video conference example (not using webrtc libraries)",
+  "description": "",
   "main": "server.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
@@ -9,16 +9,15 @@
     "dev": "nodemon server.js"
   },
   "repository": {
-    "type": "git",
-    "url": "git+https://github.com/avoup/webrtc-video-conference.git"
+
   },
   "keywords": [
-    "webrtc",
-    "sample",
-    "example",
-    "video",
-    "conference",
-    "tutorial"
+    "Yerli",
+    "Milli",
+    "Sanal",
+    "Sınıf",
+    "ZeeMe",
+    "Konferans"
   ],
   "author": "avoup",
   "license": "MIT",
